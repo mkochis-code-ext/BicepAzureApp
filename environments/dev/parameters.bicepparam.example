@@ -1,0 +1,5 @@
+# Example Configuration
+# Copy this file to parameters.bicepparam and customize values
+
+# No parameters to configure - all values are set in main.bicep
+# To customize, modify the config object in main.bicep directly

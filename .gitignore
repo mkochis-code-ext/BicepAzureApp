@@ -1,0 +1,29 @@
+# Bicep build artifacts
+*.json
+
+# Azure CLI
+.azure/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform (if mixing with Bicep)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Logs
+*.log
+
+# Environment files with secrets
+*.env
+*.secret
