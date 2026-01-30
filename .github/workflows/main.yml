@@ -1,0 +1,75 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# IMPORTANT: To enable this workflow, move this file to the .github/workflows directory (e.g. .github/workflows/main.yml)
+# ------------------------------------------------------------------------------------------------------------------------
+
+name: Deploy Bicep to Azure
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'environments/dev/**'
+      - 'project/**'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Log in to Azure using OIDC
+      # This requires configuring Federated Credentials on your Azure Service Principal
+      # See: https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-portal%2Clinux
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy the Bicep template
+      # Using 'az deployment sub create' because targetScope is 'subscription' in environments/dev/main.bicep
+      - name: Deploy Bicep
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment sub create \
+              --name "deploy-${{ github.run_id }}" \
+              --location "canadacentral" \
+              --template-file ./environments/dev/main.bicep \
+              --parameters ./environments/dev/parameters.bicepparam
+
+# ------------------------------------------------------------------------------------------------------------------------
+# REQUIRED REPOSITORY SECRETS:
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to add the following secrets to your GitHub Repository (Settings -> Secrets and variables -> Actions):
+#
+# 1. AZURE_CLIENT_ID: Maximum permission usually Contributor on the Subscription.
+#    - Create an App Registration in Microsoft Entra ID.
+#    - Copy the Application (client) ID.
+#
+# 2. AZURE_TENANT_ID:
+#    - Copy the Directory (tenant) ID from the App Registration.
+#
+# 3. AZURE_SUBSCRIPTION_ID:
+#    - The ID of the Azure Subscription you are deploying to.
+#
+# CONFIGURATION STEPS FOR OIDC (Passwordless):
+# 1. Go to your App Registration in Azure Portal.
+# 2. Go to "Certificates & secrets" -> "Federated credentials".
+# 3. Add a credential:
+#    - Scenario: "GitHub Actions deploying Azure resources"
+#    - Organization: <your-github-org-or-username>
+#    - Repository: <your-repo-name>
+#    - Entity type: "Branch" -> "main" (or branch you deploy from)
+# 4. Grant the App Registration access to your Subscription (e.g. "Contributor" role) via IAM settings in the Subscription.
+# ------------------------------------------------------------------------------------------------------------------------
